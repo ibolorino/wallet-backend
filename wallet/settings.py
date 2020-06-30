@@ -166,7 +166,9 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
+    'NON_FIELD_ERRORS_KEY': 'Validation Error'
 }
+
 
 
 SIMPLE_JWT = {
@@ -176,6 +178,8 @@ SIMPLE_JWT = {
 
 CORS_ORIGIN_ALLOW_ALL = env.bool("CORS_ORIGIN_ALLOW_ALL")
 #ALLOWED_HOSTS=env.list("ALLOWED_HOSTS")
+
+API_KEY = env("API_KEY")
 
 # CORS_ORIGIN_WHITELIST = [
 #     "http://localhost:3000",

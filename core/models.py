@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from .validators import value_validator, tax_validator
 
 class Order(models.Model):
     type_choices = (
@@ -9,27 +10,13 @@ class Order(models.Model):
     stock = models.ForeignKey("Stock", on_delete=models.PROTECT)
     quantity = models.IntegerField("Quantity", validators=[MinValueValidator(1)])
     type_order = models.CharField("Type", max_length=1, choices=type_choices)
-    value = models.DecimalField("Value", max_digits=13, decimal_places=2)
-    tax = models.DecimalField("Tax", max_digits=5, decimal_places=2)
+    value = models.DecimalField("Value", max_digits=13, decimal_places=2, validators=[value_validator])
+    tax = models.DecimalField("Tax", max_digits=5, decimal_places=2, validators=[tax_validator])
     date = models.DateField("Date", auto_now_add=True)
     person = models.ForeignKey("person.Person", on_delete=models.CASCADE)
 
     def __str__(self):
         return self.stock.ticker + " - " + str(self.date)
-
-    def new_order(self, **kwargs):
-        stock = kwargs.get('stock')
-        quantity = kwargs.get('quantity')
-        type_order = kwargs.get('type_order')
-        value = kwargs.get('value')
-        tax = kwargs.get('tax')
-        person = kwargs.get('person')
-        init_quantity = Wallet().get_quantity(stock, person)
-        if (quantity > init_quantity) and (type_order == 'S'):
-            return "Invalid order. You have {} {} stocks and can't sell {} stocks.".format(init_quantity, stock.ticker, quantity)
-        new_order = Order.objects.create(stock=stock, quantity=quantity, type_order=type_order, value=value, tax=tax, person=person)
-        Wallet().update_wallet(new_order, person)
-        return new_order
 
     def orders_by_person(self, person):
         orders = Order.objects.filter(person=person)
@@ -77,15 +64,12 @@ class Wallet(models.Model):
             quantity += order.quantity
             average_price = total_value / quantity
         else:
-            if order.quantity > quantity:
-                return "It's not possible to sell more than you have."
+            quantity -= order.quantity
+            total_value += -order.value + order.tax
+            if quantity == 0:
+                average_price = 0
             else:
-                quantity -= order.quantity
-                total_value += -order.value + order.tax
-                if quantity == 0:
-                    average_price = 0
-                else:
-                    average_price = total_value / quantity
+                average_price = total_value / quantity
         if current_wallet.pk is not None:
             current_wallet = Wallet.objects.filter(pk=current_wallet.pk).update(quantity=quantity, average_price=average_price)
         else:
