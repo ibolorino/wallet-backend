@@ -16,7 +16,7 @@ from rest_framework.permissions import (
 
 
 class StockList(generics.ListCreateAPIView):
-    queryset = Stock.objects.all()
+    queryset = Stock.objects.all().order_by('ticker', 'company_name')
     serializer_class = StockSerializer
 
 

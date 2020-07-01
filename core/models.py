@@ -42,7 +42,8 @@ class Wallet(models.Model):
     stock = models.ForeignKey("Stock", on_delete=models.PROTECT)
     person = models.ForeignKey("person.Person", on_delete=models.CASCADE)
     quantity = models.IntegerField("Quantity", validators=[MinValueValidator(1)])
-    average_price = models.DecimalField("Average Price", max_digits=6, decimal_places=2)
+    average_price = models.DecimalField("Average Price", max_digits=6, decimal_places=2, null=True)
+    total_value = models.DecimalField("Total Value", max_digits=15, decimal_places=2)
 
     def __str__(self):
         return self.person.name + " - " + self.stock.ticker
@@ -57,23 +58,23 @@ class Wallet(models.Model):
         except:
             current_wallet = Wallet()
         quantity = int(current_wallet.quantity or 0)
-        average_price = int(current_wallet.average_price or 0)
-        total_value = quantity * average_price
+        average_price = float(current_wallet.average_price or 0.0)
+        total_value = float(current_wallet.total_value or 0.0)
         if order.type_order == 'B':
-            total_value += order.value + order.tax
+            total_value = total_value + float(order.value) + float(order.tax)
             quantity += order.quantity
             average_price = total_value / quantity
         else:
             quantity -= order.quantity
-            total_value += -order.value + order.tax
+            total_value = total_value - float(order.value) + float(order.tax)
             if quantity == 0:
                 average_price = 0
             else:
                 average_price = total_value / quantity
         if current_wallet.pk is not None:
-            current_wallet = Wallet.objects.filter(pk=current_wallet.pk).update(quantity=quantity, average_price=average_price)
+            current_wallet = Wallet.objects.filter(pk=current_wallet.pk).update(quantity=quantity, average_price=average_price, total_value=total_value)
         else:
-            current_wallet = Wallet.objects.create(stock=order.stock, person=person, quantity=quantity, average_price=average_price)
+            current_wallet = Wallet.objects.create(stock=order.stock, person=person, quantity=quantity, average_price=average_price, total_value=total_value)
         return current_wallet
 
     def get_quantity(self, stock, person):
