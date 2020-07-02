@@ -46,8 +46,17 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class WalletSerializer(serializers.ModelSerializer):
-    stock = StockSerializer(many = False, read_only=True)
 
     class Meta:
         model = Wallet
         fields = ('id', 'stock', 'quantity', 'average_price', 'person', 'total_value')
+        extra_kwargs = {'average_price': {'read_only': True}}
+
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response['stock'] = StockSerializer(instance.stock).data
+        return response
+
+    def validate(self, data):
+        data['average_price'] = data['total_value'] / data['quantity']
+        return data

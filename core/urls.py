@@ -7,5 +7,6 @@ urlpatterns = [
     # path('<int:id>', detalhe_assinatura, name='detalhe_assinatura'),
     path('stocks', StockList.as_view()),
     path('orders', orders),
+    path('orders/detail/<int:pk>', detail_order),
     path('wallets', wallets)
 ]

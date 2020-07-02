@@ -43,7 +43,7 @@ class Wallet(models.Model):
     person = models.ForeignKey("person.Person", on_delete=models.CASCADE)
     quantity = models.IntegerField("Quantity", validators=[MinValueValidator(1)])
     average_price = models.DecimalField("Average Price", max_digits=6, decimal_places=2, null=True)
-    total_value = models.DecimalField("Total Value", max_digits=15, decimal_places=2)
+    total_value = models.DecimalField("Total Value", max_digits=15, decimal_places=2, validators=[value_validator])
 
     def __str__(self):
         return self.person.name + " - " + self.stock.ticker
@@ -52,9 +52,9 @@ class Wallet(models.Model):
         wallets = Wallet.objects.filter(person=person)
         return wallets
 
-    def update_wallet(self, order, person):
+    def update_wallet_on_order(self, order, person):
         try:
-            current_wallet = Wallet.objects.get(stock__ticker=order.stock.ticker)
+            current_wallet = Wallet.objects.get(stock__ticker=order.stock.ticker, person=person)
         except:
             current_wallet = Wallet()
         quantity = int(current_wallet.quantity or 0)
@@ -67,6 +67,8 @@ class Wallet(models.Model):
         else:
             quantity -= order.quantity
             total_value = total_value - float(order.value) + float(order.tax)
+            if total_value < 0:
+                total_value = 0
             if quantity == 0:
                 average_price = 0
             else:
@@ -77,9 +79,36 @@ class Wallet(models.Model):
             current_wallet = Wallet.objects.create(stock=order.stock, person=person, quantity=quantity, average_price=average_price, total_value=total_value)
         return current_wallet
 
+    def update_wallet_on_delete_order(self, order_deleted, person):
+        current_wallet = Wallet.objects.filter(stock__ticker=order_deleted.stock.ticker, person=person)
+        quantity = int(current_wallet[0].quantity)
+        total_value = int(current_wallet[0].total_value)
+        if order_deleted.type_order == 'B':
+            total_value -= float(order_deleted.value) - float(order_deleted.tax)
+            if total_value < 0:
+                total_value = 0
+            quantity -= order_deleted.quantity
+            if quantity == 0:
+                average_price = 0
+            else:
+                average_price = total_value / quantity
+        else:
+            total_value += float(order_deleted.value) - float(order_deleted.tax)
+            quantity += order_deleted.quantity
+            average_price = total_value / quantity
+        current_wallet.update(quantity=quantity, average_price=average_price, total_value=total_value)
+        return current_wallet
+
     def get_quantity(self, stock, person):
         try:
             wallet = Wallet.objects.get(stock=stock, person=person)
             return wallet.quantity
         except:
             return 0
+
+    def add_wallet(self, wallet, data_to_add):
+        quantity = wallet[0].quantity + int(data_to_add['quantity'])
+        total_value = float(wallet[0].total_value) + data_to_add['total_value']
+        average_price = round(total_value / quantity, 2)
+        wallet.update(quantity=quantity, average_price=average_price, total_value=total_value)
+        return wallet
