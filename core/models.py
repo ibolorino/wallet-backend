@@ -22,11 +22,18 @@ class Order(models.Model):
         orders = Order.objects.filter(person=person)
         return orders
 
+    def delete_by_wallet(self, wallet):
+        stock = wallet.stock
+        orders = Order.objects.filter(stock=stock)
+        orders.delete()
+        return "deleted"
+
 
 class Stock(models.Model):
     company_name = models.CharField("Company Name", max_length=255)
     ticker = models.CharField("Ticker", max_length=10, unique=True)
     current_value = models.DecimalField("Current Value", max_digits=6, decimal_places=2)
+    last_update = models.DateTimeField("Last price update", blank=True, null=True)
 
     def __str__(self):
         return self.ticker
@@ -39,7 +46,7 @@ class Stock(models.Model):
 
 
 class Wallet(models.Model):
-    stock = models.ForeignKey("Stock", on_delete=models.PROTECT)
+    stock = models.ForeignKey("Stock", on_delete=models.CASCADE)
     person = models.ForeignKey("person.Person", on_delete=models.CASCADE)
     quantity = models.IntegerField("Quantity", validators=[MinValueValidator(1)])
     average_price = models.DecimalField("Average Price", max_digits=6, decimal_places=2, null=True)

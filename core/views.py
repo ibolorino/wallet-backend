@@ -13,6 +13,7 @@ from rest_framework.permissions import (
     IsAdminUser,
     IsAuthenticatedOrReadOnly
 )
+from .services import update_price
 
 
 class StockList(generics.ListCreateAPIView):
@@ -40,11 +41,13 @@ def orders(request):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             order = Order.objects.get(pk=serializer.data['id'])
+            update_price(order.stock)
             Wallet().update_wallet_on_order(order, person)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET', 'DELETE'])
+
+@api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def detail_order(request, pk):
     try:
@@ -81,10 +84,24 @@ def wallets(request):
             data['average_price'] = serializer.validated_data['average_price']
             if len(person_wallet) == 0:
                 serializer.save()
+                wallet = Wallet.objects.get(pk=serializer.data['id'])
+                update_price(wallet.stock)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 wallet = Wallet().add_wallet(person_wallet, data)
-                print(wallet.values()[0])
+                update_price(wallet[0].stock)
                 return Response(wallet.values()[0], status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
         
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def detail_wallet(request, pk):
+    try:
+        wallet = Wallet.objects.get(pk=pk)
+    except Wallet.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    person = request.user.person
+    if request.method == 'DELETE':
+        Order().delete_by_wallet(wallet)
+        wallet.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

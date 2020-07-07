@@ -6,22 +6,6 @@ class StockSerializer(serializers.ModelSerializer):
         model = Stock
         fields = "__all__"
 
-    # def validate(self, data):
-    #     """
-    #         Recebe um dicionario com os dados do serializer e valida. Útil para validações que comparam mais de um campo.
-    #     """
-    #     if data['ticker'] != "BLRS3":
-    #         raise serializers.ValidationError("Ticker de novo!")
-    #     return data
-
-    # def validate_ticker(self, value):
-    #   """
-    #       Faz a validação de apenas um campo, passado através do parâmetro 'value'
-    #   """
-    #     if value != "BLRS3":
-    #         raise serializers.ValidationError("Ticker não é BLRS3")
-    #     return value
-
 
 class OrderSerializer(serializers.ModelSerializer):
     #stock = StockSerializer(many = False)

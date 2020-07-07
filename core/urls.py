@@ -8,5 +8,6 @@ urlpatterns = [
     path('stocks', StockList.as_view()),
     path('orders', orders),
     path('orders/detail/<int:pk>', detail_order),
-    path('wallets', wallets)
+    path('wallets', wallets),
+    path('wallets/detail/<int:pk>', detail_wallet),
 ]
